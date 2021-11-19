@@ -44,10 +44,10 @@ grandparent(X, Y) :- parent(X, Z), parent(Z, Y).
 
 :- initialization(main).
 main:- 
-setof(X, grandparent(X, florian), L),
-write('List of solutions ?- : '),
-writeln(L),
-halt.
+    setof(X, grandparent(X, florian), L),
+    write('List of solutions ?- : '),
+    writeln(L),
+    halt.
 
 %%% test using the terminal:
 % ?- grandparent(X,florian).

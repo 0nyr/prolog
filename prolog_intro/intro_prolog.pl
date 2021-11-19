@@ -1,3 +1,5 @@
+% This file is not a real Prolog file but contains
+% examples of how to use the Prolog interpreter.
 
 lien(paris,lyon).
 lien(lyon,marseille).
@@ -28,7 +30,7 @@ fermeture(X,Y) :- relation(X,Y).
 fermeture(X,Y) :- relation(X,Z), fermeture(Z,Y). 
 
 % ?-fermeture(X,Y).
-% Attention, puisque le graphe qui correspond à lien 
+% Attention, puisque le graphe qui correspond ï¿½ lien 
 % contient un cycle, ce programme peut boucler
 
 fermeture1(X,Y) :- relation(X,Y).    			

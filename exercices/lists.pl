@@ -24,7 +24,14 @@ first_element(X, L) :-
     % member of list with no preceding element
     member(X,L), not(has_preceding_element(X,L)).
 
-%%% queries:
+list_deprived_of_element(X,L,RestOfL) :- 
+    % RestOfL is the list L with no occurence of X
+    % predicate 1: find a list L1 such that the list L is the 
+    %   concatenation of L1 and L2 with an external element X
+    % predicate 2: RestOfL is the concatenation of L1 and L2
+    concat(L1,[X|L2],L), concat(L1,L2,RestOfL), not(member(X,RestOfL)).
+
+%%% clauses used to test the predicates (queries):
 test_membership :-
     member(pierre,[annie,olivier,pierre,veronique]),
     % displays only if preceding clause was evaluated as true
@@ -77,6 +84,35 @@ test_first_element_2 :-
     not(first_element(3, [1,2,3])),
     writeln("first_element(3, [1,2,3]) ?- failure as expected").
 
+test_list_deprived_of_element_1 :-
+    list_deprived_of_element(3, [1,2,3,4], [1,2,4]),
+    writeln("list_deprived_of_element(3, [1,2,3,4], [1,2,4]) ?- success as expected").
+
+test_list_deprived_of_element_2 :-
+    not(list_deprived_of_element(3, [1,2,3], [1,2,3])),
+    writeln("list_deprived_of_element(3, [1,2,3], [1,2,3]) ?- failure as expected").
+
+test_list_deprived_of_element_3 :-
+    % WARN: This test does not work as expected
+    % because the predicate list_deprived_of_element
+    % is only capable of removing the first occurence of X
+    list_deprived_of_element(3, [1,2,3,2,3,3,1], [1,2,2,1]),
+    writeln("list_deprived_of_element(3, [1,2,3,2,3,3,1], [1,2,2,1]) ?- success as expected").
+
+test_list_deprived_of_element_4 :-
+    bagof(R, list_deprived_of_element(2, [1,2,1,3], R), QueryResults),
+    write('list_deprived_of_element(2, [1,2,1,3], R) ?- : '),
+    writeln(QueryResults).
+
+test_list_deprived_of_element_5 :-
+    % source of ideas: http://www.aistudy.com/program/prolog/visual_prolog/Repetitive%20Processes.htm
+    list_deprived_of_element(X, [1,2,1,3], R),
+    write('list_deprived_of_element(X, [1,2,1,3], R) ?- : '),
+    write("X = "), write(X),
+    write(", R = "), write(R),
+    nl, fail.
+test_list_deprived_of_element_5. % need to repeat the clause
+
 %%% run:
 :- initialization(main).
 main:- 
@@ -91,4 +127,8 @@ main:-
     test_has_preceding_element_2,
     test_first_element_1,
     test_first_element_2,
+    test_list_deprived_of_element_1,
+    test_list_deprived_of_element_2,
+    test_list_deprived_of_element_4,
+    test_list_deprived_of_element_5,
     halt.
