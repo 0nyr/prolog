@@ -29,7 +29,15 @@ list_deprived_of_element(X,L,RestOfL) :-
     % predicate 1: find a list L1 such that the list L is the 
     %   concatenation of L1 and L2 with an external element X
     % predicate 2: RestOfL is the concatenation of L1 and L2
-    concat(L1,[X|L2],L), concat(L1,L2,RestOfL), not(member(X,RestOfL)).
+    concat(L1,[X|L2],L), concat(L1,L2,RestOfL).
+
+list_deprived_of_all_occurences_of_element(X,L,RestOfL) :-
+    %not(member(X, RestOfL)), list_deprived_of_element(X,L,RestOfL)
+    % goal: remove first occurence of X from L as long as 
+    % it is possible to do so
+    list_deprived_of_element(X,L,RestOfL),
+    fail.
+
 
 %%% clauses used to test the predicates (queries):
 test_membership :-
@@ -113,6 +121,11 @@ test_list_deprived_of_element_5 :-
     nl, fail.
 test_list_deprived_of_element_5. % need to repeat the clause
 
+test_list_deprived_of_all_occurences_of_element_1 :-
+    list_deprived_of_element(3, [1,2,3,2,3,3,1], [1,2,2,1]),
+    writeln("list_deprived_of_element(3, [1,2,3,2,3,3,1], [1,2,2,1]) ?- success as expected").
+
+
 %%% run:
 :- initialization(main).
 main:- 
@@ -131,4 +144,5 @@ main:-
     test_list_deprived_of_element_2,
     test_list_deprived_of_element_4,
     test_list_deprived_of_element_5,
+    test_list_deprived_of_all_occurences_of_element_1,
     halt.
