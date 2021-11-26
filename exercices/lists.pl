@@ -1,7 +1,7 @@
 %%%%% Working with lists in PROLOG
 % Tips: 
-% * Don't think in terms of imperative declaration,
-%   think in terms of declarative declaration.
+% * Don't think in terms of imperative code,
+%   think in terms of declarative code.
 % * Build predicates from success to other predicates.
 % * Query testing only possible with success, so
 %   keep in mind to negate failure when a query should fail.
@@ -31,12 +31,91 @@ list_deprived_of_element(X,L,RestOfL) :-
     % predicate 2: RestOfL is the concatenation of L1 and L2
     concat(L1,[X|L2],L), concat(L1,L2,RestOfL).
 
+/* The following code is not correct:
+
 list_deprived_of_all_occurences_of_element(X,L,RestOfL) :-
     %not(member(X, RestOfL)), list_deprived_of_element(X,L,RestOfL)
     % goal: remove first occurence of X from L as long as 
     % it is possible to do so
     list_deprived_of_element(X,L,RestOfL),
     fail.
+*/
+
+/* Start testing 3rd clause or 2nd clause and continue evaluating
+those 2 clauses (one of the 2 must be true) until only the 1st clause 
+remain (when there are only the empty list remaining). */
+
+/* Start: PROLOG want's to verify list_deprived_of_all_occurences_of_element,
+to do so, it needs to check element(X,L,RestOfL).
+
+Remark: 
+* _ is any variable,
+* [] is empty list
+* A :- B means If A, is B true ?, 
+    if B is false, don't have A
+    if B is true, A true.
+
+Check to apply 2nd, 3rd and 4th.
+1st: wrapper for element(X,L,RestOfL) clauses.
+
+2nd: always true for empty lists as second and third param.
+
+3rd: if second param is [X,...], continue to evaluate element(X,L,RestOfL),
+which means we just removed the first occurence of X from L.
+
+4th: if the two given lists as second and third element start
+with a same element Z, Z must be different from X, then continue
+to evaluate element(X, L, RestOfL), effectively removing
+Z from the evaluation pipeline.
+
+Example: Step by step evaluation:
+
+1. We have list_deprived_of_all_occurences_of_element(3,[1,3,2,3],[1,2]),
+so we need to evaluate element(3,[1,3,2,3],[1,2]) until it is true.
+
+2. Check if any of the following clauses is true:
+    element(_,[],[]), 
+    element(X,[X|L],RestOfL), 
+    element(X,[Z|L],[Z|RestOfL])
+We have actually that element(3,[1,3,2,3],[1,2]) is
+element(3,[1|...],[1...]) so we have element(X,[Z|L],[Z|RestOfL]),
+and not(X==Z) is true, so continue to evaluate element(3,[3,2,3],[2]).
+
+3. Check if any of the following clauses is true:
+    element(_,[],[]), 
+    element(X,[X|L],RestOfL), 
+    element(X,[Z|L],[Z|RestOfL])
+We have element(3,[3|...],[2]) so we have element(X,[X|L],RestOfL).
+Then we need to continue to evaluate element(3,[2,3],[2]).
+
+4. Check if any of the following clauses is true:
+    element(_,[],[]), 
+    element(X,[X|L],RestOfL), 
+    element(X,[Z|L],[Z|RestOfL])
+We have element(3,[2|...],[2|...]) and not(3==2) is true.
+So we need to continue to evaluate element(3,[3],[]).
+
+5. Check if any of the following clauses is true:
+    element(_,[],[]), 
+    element(X,[X|L],RestOfL), 
+    element(X,[Z|L],[Z|RestOfL])
+We have element(3,[3|...],[]) so we have element(X,[X|L],RestOfL).
+Then we need to continue to evaluate element(3,[],[]).
+
+6. Check if any of the following clauses is true:
+    element(_,[],[]), 
+    element(X,[X|L],RestOfL), 
+    element(X,[Z|L],[Z|RestOfL])
+Eventually we have element(3,[],[]) so we have element(_,[],[]).
+There is not more things to evaluate, so we have true. Return.
+*/
+
+list_deprived_of_all_occurences_of_element(X,L,RestOfL) :- 
+    element(X,L,RestOfL).
+
+element(_,[],[]).
+element(X,[X|L],RestOfL) :- element(X,L,RestOfL).
+element(X,[Z|L],[Z|RestOfL]) :- not(X==Z), element(X, L, RestOfL).
 
 
 %%% clauses used to test the predicates (queries):
@@ -121,9 +200,10 @@ test_list_deprived_of_element_5 :-
     nl, fail.
 test_list_deprived_of_element_5. % need to repeat the clause
 
-test_list_deprived_of_all_occurences_of_element_1 :-
-    list_deprived_of_element(3, [1,2,3,2,3,3,1], [1,2,2,1]),
+test_list_deprived_of_all_occurences_of_element :-
+    list_deprived_of_all_occurences_of_element(3, [1,2,3,2,3,3,1], [1,2,2,1]),
     writeln("list_deprived_of_element(3, [1,2,3,2,3,3,1], [1,2,2,1]) ?- success as expected").
+
 
 
 %%% run:
@@ -144,5 +224,5 @@ main:-
     test_list_deprived_of_element_2,
     test_list_deprived_of_element_4,
     test_list_deprived_of_element_5,
-    test_list_deprived_of_all_occurences_of_element_1,
+    test_list_deprived_of_all_occurences_of_element,
     halt.
