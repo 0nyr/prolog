@@ -543,4 +543,5 @@ main:-
     test_list_as_set_1,
     test_list_as_set_2,
     test_union_of_sets_as_lists_1,
-    test_intersection_of_sets_as_lists_1.
+    test_intersection_of_sets_as_lists_1, 
+    halt.
