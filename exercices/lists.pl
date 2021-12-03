@@ -8,10 +8,59 @@
 % @author: 0nyr 
 
 %%% conditional predicates:
+/* X member of a list ?
+
+Check: Step by step:
+
+1. We are given member(3, [1,2,3])
+Check:
+    member(X,[X|_]),
+    member(X,[_|L])
+We have member(3,[1|...]) since _ means anything, so we 
+can continue to evalute member(3,[2,3]) meaning we have
+removed the first element of the list.
+
+2. Check:
+    member(X,[X|_]),
+    member(X,[_|L])
+We have member(3,[2|...]) since _ means anything, so we
+can continue to evalute member(3,[3]).
+
+3. Check:
+    member(X,[X|_]),
+    member(X,[_|L])
+We have member(3,[3|...]) since _ means anything, so we
+have member(X,[X|_]) which is true. Return.
+*/
 member(X,[X|_]). 
 member(X,[_|L]) :- member(X,L).
 
-% concat if L3 is the concatenation of L1 and L2
+/* concat if L3 is the concatenation of L1 and L2
+
+Example: Step by step:
+
+1. We are given concat([1,2], [3,4], [1,2,3,4]).
+Check:
+    concat([],L,L),
+    concat([X|L1],L2,[X|L3])
+We have concat([1|...], [...], [1|...]), so we have
+concat([X|L1],L2,[X|L3]). We need to continue to evaluate
+concat(L1, L2, L3), which means we have efectively eliminated
+the first element of L1. We have to continue to evaluate.
+
+2. Check:
+    concat([],L,L),
+    concat([X|L1],L2,[X|L3])
+We have concat([2|...], [...], [2|...]), so we have
+concat([X|L1],L2,[X|L3]). We need to continue to evaluate
+concat([], [3,4], [3,4]).
+
+2. Check:
+    concat([],L,L),
+    concat([X|L1],L2,[X|L3])
+We have concat([], [3,4], [3,4]). So we have concat([],L,L)
+which is always true. Return.
+*/
 concat([],L,L). 
 concat([X|L1],L2,[X|L3]) :- concat(L1,L2,L3).
 
@@ -118,6 +167,185 @@ element(X,[X|L],RestOfL) :- element(X,L,RestOfL).
 element(X,[Z|L],[Z|RestOfL]) :- not(X==Z), element(X, L, RestOfL).
 
 
+/* Inversion of list 
+
+Remark: PROLOG distinguished variables from lists.
+
+?- concat(3,[1,2],[3,1,2]).
+false.
+
+?- concat([3],[1,2],[3,1,2]).
+true.
+
+So beware, here, don't do concat(L2,X,ConcatResultL),
+do concat(L2,[X],ConcatResultL).
+
+Example of broken code:
+
+inv([],[]).
+inv([X|L1],[L2|X]) :- inv(L1,L2).
+
+This won't works since [L2|X] means L2 first element of
+the list, and X is all the rest... this is not what we want.
+We wanted L2 all the rest, X last element ! This can help how the 
+[A|B] works in prolog.
+*/
+
+/*inv([], L).
+inv([X|L1],L2) :- 
+    concat(L2,[X],ConcatResultL),
+    inv(L1,ConcatResultL).*/
+    
+/*inv([],[]).
+inv([X|L1], L2) :- inv(L1, InvL1), concat(InvL1,[X], L2).
+*/
+
+inv([],[]).
+inv([X|L1], L2) :- inv(L1, InvL1), concat(InvL1,[X], L2).
+
+
+component_worker(Index,Index,X,[X|_]).
+
+component_worker(Index,Counter,X,[_|L]) :- 
+    IncrementedCounter is Counter+1,
+    component_worker(Index,IncrementedCounter,X,L).
+
+% This clause is creating an alias without Counter
+component(Index,X,L) :- component_worker(Index,1,X,L).
+
+
+/* Wrong code:
+% subsAll if L2 is L1 with all occurences of X replaced by Y
+subsAll(X,Y,[],L2).
+subsAll(X,Y,[X|L1],L2) :- 
+    concat(L2,[Y],ConcatL2), 
+    subsAll(X,Y,L1,ConcatL2).
+
+
+subsOnce(X,Y,L1,L2) :- subsOnce_worker(X,Y,0,L1,L2).
+subsOnce_worker(X,Y,_,[],L2).
+subsOnce_worker(X,Y,IsAlreadySub,[Z|L1],L2) :-
+    not(X==Z), 
+    not(IsAlreadySub == 1), 
+    concat(L2,[Z],ConcatL2),
+    subsOnce_worker(X,Y,0,L1,ConcatL2).
+subsOnce_worker(X,Y,IsAlreadySub,[X|L1],L2) :- 
+    not(IsAlreadySub == 1),
+    concat(L2,[Y],ConcatL2),
+    subsOnce_worker(X,Y,1,L1,ConcatL2).
+*/
+
+/* How to find clause:
+1. What do I want the clause to return ?
+2. Base case
+3. Stop case.
+4. Special case with empty values or lists.
+5. Do we need an intermediate clause ?
+
+Understand that PROLOG goes on until it finds a true clause.
+Then it backtracks and returns the result:
+
+?- trace(subsAll).
+%         subsAll/4: [all]
+true.
+
+?- subsAll(a,x,[a,b,c,d,a,a,d], L).
+ T [10] Call: subsAll(a, x, [a, b, c, d, a, a, d], _28756)
+ T [19] Call: subsAll(a, x, [b, c, d, a, a, d], _30062)
+ T [28] Call: subsAll(a, x, [c, d, a, a, d], _30958)
+ T [37] Call: subsAll(a, x, [d, a, a, d], _31866)
+ T [46] Call: subsAll(a, x, [a, a, d], _722)
+ T [55] Call: subsAll(a, x, [a, d], _1630)
+ T [64] Call: subsAll(a, x, [d], _2526)
+ T [73] Call: subsAll(a, x, [], _3422)
+ T [73] Exit: subsAll(a, x, [], [])
+ T [64] Exit: subsAll(a, x, [d], [d])
+ T [55] Exit: subsAll(a, x, [a, d], [x, d])
+ T [46] Exit: subsAll(a, x, [a, a, d], [x, x, d])
+ T [37] Exit: subsAll(a, x, [d, a, a, d], [d, x, x, d])
+ T [28] Exit: subsAll(a, x, [c, d, a, a, d], [c, d, x, x, d])
+ T [19] Exit: subsAll(a, x, [b, c, d, a, a, d], [b, c, d, x, x, d])
+ T [10] Exit: subsAll(a, x, [a, b, c, d, a, a, d], [x, b, c, d, x, x, d])
+L = [x, b, c, d, x, x, d] .
+*/
+subsAll(_,_,[],[]).
+subsAll(X,Y,[X|L1],[Y|L2]) :- 
+    subsAll(X,Y,L1,L2).
+subsAll(X,Y,[Z|L1],[Z|L2]) :- 
+    not(X==Z),
+    subsAll(X,Y,L1,L2).
+
+subsOnce(_,_,[],[]).
+subsOnce(X,Y,[X|L1],[Y|L1]). % WARN: No L2 here !
+subsOnce(X,Y,[Z|L1],[Z|L2]) :- 
+    not(X==Z), subsOnce(X,Y,L1,L2).
+
+% L3, union of L1 and L2
+/*
+ens_union([],[],_).
+ens_union([X|L1],[X|L2],L3) :-
+    member(X,L3),
+    ens_union(L1,L2,L3).
+ens_union([X|L1],[Y|L2],L3]) :-
+    not(X==Y),
+    member(X,L3),
+    member(Y,L3),
+    ens_union(L1,L2,L3). 
+ens_union([],[Y|L2],L3) :-
+    membre(Y,L3),
+    ens_union(L1,L2,L3).
+ens_union([X|L1],[],L3) :-
+    membre(X,L3),
+    ens_union(L1,L2,L3).
+
+
+list2ens([],[]).
+list2ens([],_). % WRONG !!!
+list2ens([X|L1],[X|L2]) :- 
+    not(member(X,L2)),
+    list2ens(L1,L2).
+list2ens([X|L1],L2) :- 
+    member(X,L2),
+    list2ens(L1,L2).
+
+
+
+
+*/
+
+% returns a set out of a list (remove diplicates)
+list_as_set([],_).
+list_as_set([X|L1],SetLWithoutX) :- 
+    not(member(X,SetLWithoutX)),
+    concat(SetLWithoutX,[X],SetL),
+    list_as_set(L1,SetL).
+list_as_set([X|L1],SetLWithX) :- 
+    member(X,SetLWithX),
+    list_as_set(L1,SetLWithX).
+
+list_as_set([],_) :-
+
+
+
+/*
+ens_intersect([],[],_).
+ens_intersect([],[Y|L2],L3) :- member(Y,L3), ens_intersect([],L2,L3).
+ens_intersect([X|L1],L2,L3]) :- member(X,L2), ens_intersect(L1,L2,L3).*/
+
+
+/*inv_accumulateur(L1,R):- inv_accumulateur_worker(L1, [], R). % Lancement du worker avec un accumulateur vide
+inv_accumulateur_worker([], R, R).              % Si la liste est vide, le résultat est l'accumulateur
+inv_accumulateur_worker([H|L1], Acc, R):-       % Sinon
+    inv_accumulateur_worker(L1, [H|Acc], R).    % On prepend la tête dans l'accumulateur
+
+list2ens(L1, R):-list2ens_worker(L1, [], R). % Initialisation du worker.
+
+list2ens_worker([], R, R2):- inv_accumulateur(R,R2).    % La liste est vide on a terminé. Comme on utilise un accumulateur le résultat est "à l'envers" donc il faut le renverser.
+list2ens_worker([H|L1], Acc, R):- not(member(H, Acc)), list2ens_worker(L1, [H|Acc], R). % Si H n'est pas membre de l'accumulateur alors on le rajoute dans l'accumulateur et on passe à la suite.
+list2ens_worker([H|L1], Acc, R):- member(H,Acc), list2ens_worker(L1, Acc, R). % Sinon on passe juste à la suite.
+*/
+
+
 %%% clauses used to test the predicates (queries):
 test_membership :-
     member(pierre,[annie,olivier,pierre,veronique]),
@@ -191,6 +419,17 @@ test_list_deprived_of_element_4 :-
     write('list_deprived_of_element(2, [1,2,1,3], R) ?- : '),
     writeln(QueryResults).
 
+/* The following code is equivalent to 
+
+test_list_deprived_of_element_5 :-
+    % source of ideas: http://www.aistudy.com/program/prolog/visual_prolog/Repetitive%20Processes.htm
+    list_deprived_of_element(X, [1,2,1,3], R),
+    write('list_deprived_of_element(X, [1,2,1,3], R) ?- : '),
+    write("X = "), write(X),
+    write(", R = "), writeln(R). 
+
+WARN: putting ln instead of write(R), ln. will return false.
+*/
 test_list_deprived_of_element_5 :-
     % source of ideas: http://www.aistudy.com/program/prolog/visual_prolog/Repetitive%20Processes.htm
     list_deprived_of_element(X, [1,2,1,3], R),
@@ -204,6 +443,72 @@ test_list_deprived_of_all_occurences_of_element :-
     list_deprived_of_all_occurences_of_element(3, [1,2,3,2,3,3,1], [1,2,2,1]),
     writeln("list_deprived_of_element(3, [1,2,3,2,3,3,1], [1,2,2,1]) ?- success as expected").
 
+test_list_inversion_1 :-
+    inv([1,2], [2,1]),
+    writeln("inv([1,2], [2,1]) ?- success as expected").
+
+test_list_inversion_2 :-
+    inv([1,2,1,3,2,4],[4,2,3,1,2,1]),
+    writeln("inv([1,2,1,3,2,4],[4,2,3,1,2,1]) ?- success as expected").
+
+test_list_inversion_3 :-
+    inv([1,2,3,4], L),
+    write("inv([1,2,3,4], L) ?- "),
+    write("L = "), writeln(L).
+
+/* The following doesn"t works */
+test_list_inversion_4 :-
+    inv(L, [4,3,2,1]),
+    write("inv(L, [4,3,2,1]) ?- "),
+    write("L = "), writeln(L). 
+
+test_list_inversion_5 :-
+    inv(L, [4,3,X,1]),
+    write("inv(L, [4,3,X,1]) ?- "),
+    write("L = "), writeln(L).
+
+test_element_at_index_in_list_1 :-
+    component(3,X,[a,b,c,d]),
+    write("component(2,X,[a,b,c,d]) ?- "),
+    write("X = "), writeln(X).
+
+test_substitution_once_1 :-
+    subsOnce(a,x,[a,b,c,d], L),
+    write("subsOnce(a,x,[a,b,c,d], L) ?- "),
+    write("L = "), writeln(L).
+
+test_substitution_all_1 :-
+    subsAll(a,x,[a,b,c,d,a,a,d], L),
+    write("subsAll(a,x,[a,b,c,d,a,a,d], L) ?- "),
+    write("L = "), writeln(L).
+
+test_subslist_contained_in_list_1 :-
+    list2ens([a,b,c,b,a],[a,b,c]),
+    writeln("list2ens([a,b,c,b,a],[a,b,c]) ?- success as expected").
+
+test_subslist_contained_in_list_2 :-
+    list2ens([a,b,c,b,a],L),
+    write("list2ens([a,b,c,b,a],L) ?- "),
+    write("L = "), writeln(L).
+
+test_list_as_set_1 :-
+    list_as_set([a,b,c,a,b,d],L),
+    write("list_as_set([a,b,c,a,b,d],L) ?- "),
+    write("L = "), writeln(L).
+
+test_list_as_set_2 :-
+    list_as_set([a,b,c,a,b,d],L),
+    writeln("list_as_set([a,b,c,c,a],[a,b,c]) ?- success as expected").
+
+test_union_of_sets_as_lists_1 :- 
+    ens_union([a,b,c,d],[d,e,f],L),
+    write("list2ens([a,b,c,d],[d,e,f],L) ?- "),
+    write("L = "), writeln(L).
+
+test_intersection_of_sets_as_lists_1 :-
+    ens_intersect([a,b,c,d],[b,d,e,f],L),
+    write("ens_intersect([a,b,c,d],[b,d,e,f],L) ?- "),
+    write("L = "), writeln(L).
 
 
 %%% run:
@@ -225,4 +530,17 @@ main:-
     test_list_deprived_of_element_4,
     test_list_deprived_of_element_5,
     test_list_deprived_of_all_occurences_of_element,
-    halt.
+    test_list_inversion_1,
+    test_list_inversion_2,
+    test_list_inversion_3,
+    test_list_inversion_4,
+    test_list_inversion_5,
+    test_element_at_index_in_list_1,
+    test_substitution_once_1,
+    test_substitution_all_1,
+    test_subslist_contained_in_list_1,
+    test_subslist_contained_in_list_2,
+    test_list_as_set_1,
+    test_list_as_set_2,
+    test_union_of_sets_as_lists_1,
+    test_intersection_of_sets_as_lists_1.
